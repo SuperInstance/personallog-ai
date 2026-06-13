@@ -1,94 +1,313 @@
-# PersonalLog AI
+# personallog.ai
 
-**PersonalLog** is a privacy-first life-logging application that records, indexes, and retrieves personal events through natural-language search. It runs as a Cloudflare Worker, storing all data locally on the user's device — no cloud sync, no accounts, no ad tracking. Ask "When was the last time I went to the dentist?" and get an instant answer.
+**Your AI, Living in Your Repo**
 
-## Why It Matters
+Fork. Add keys. Deploy. Your personal agent is alive.
 
-Human memory is lossy and unindexed. We forget dentist appointments, oil change mileage, dinner conversations, and medication schedules — then reconstruct them badly when needed. Existing solutions (notes apps, calendar) require manual organization; social platforms harvest personal data for advertising. PersonalLog occupies a different niche: capture everything effortlessly (voice, text, photo, location), auto-tag with NLP, and search with natural language. The privacy model is absolute: data never leaves the device. This makes it suitable for sensitive personal records — health, financial, relational — that users wouldn't trust to a cloud service.
+personallog.ai is a personal AI agent that lives in your Git repository. It remembers your conversations, understands your code, and connects to your favorite messaging apps. Built on [cocapn](https://github.com/nichochar/cocapn) — the paradigm where the repo IS the agent.
 
-## How It Works
+---
 
-### Capture Pipeline
+## Features
 
-```
-Input (voice/text/photo) → NLP extraction → Auto-tagging → Local index → Search-ready
-```
+- **Persistent Memory** — Remembers everything across sessions via KV-backed storage
+- **Multi-Channel** — Chat via web, Telegram, Discord, WhatsApp, or email
+- **Agent-to-Agent** — Talk to other personallog.ai agents via the A2A protocol
+- **Repo-Aware** — Reads and understands your files, code, and documentation
+- **Self-Hosted** — Runs on Cloudflare Workers. Your data, your infrastructure
+- **Open Source** — MIT licensed. Fork it, modify it, make it yours
+- **Soul-Driven** — Personality defined in `cocapn/soul.md`. Edit the file, change who the agent is
+- **Streaming** — Real-time SSE streaming responses for the web app
+- **Guest Mode** — Share your agent with anyone (5 free messages, configurable)
 
-Each entry passes through:
-1. **Transcription** (voice → text via Whisper)
-2. **Entity extraction** (dates, people, places, quantities)
-3. **Topic classification** (health, social, car, home, family, finance)
-4. **Temporal indexing** (event timestamp + recurring reminder scheduling)
-
-### Natural Language Search
-
-The search engine parses natural queries into structured lookups:
-
-```
-"When did I last see Sarah?" →
-  entity_filter = {people: ["Sarah"]}
-  sort = descending(timestamp)
-  limit = 1
-
-"What was that restaurant Mike recommended?" →
-  entity_filter = {people: ["Mike"], topics: ["food"]}
-  keyword_filter = ["restaurant", "recommended"]
-```
-
-Complexity: O(k) for inverted-index lookup where k = postings list length. Sub-millisecond for personal corpora (<100K entries).
-
-### Auto-Tagging Model
-
-Tags are assigned via a lightweight on-device classifier:
-
-```
-P(tag | entry) = softmax(W · embedding(entry))
-```
-
-The embedding model runs in the browser via WebAssembly, producing 384-dimensional vectors. No server calls — the inference happens entirely on-device.
-
-### Recurring Reminders
-
-Temporal patterns trigger future reminders:
-
-```
-"Remind me in 6 months about the dentist" →
-  reminder = {trigger: now + 6 months, query: "dentist"}
-
-"Remind me at 50,000 miles about oil" →
-  reminder = {trigger_condition: mileage ≥ 50000, query: "oil change"}
-```
+---
 
 ## Quick Start
 
-```bash
-# Deploy as Cloudflare Worker
-npx wrangler deploy
+### 1. Fork & Clone
 
-# Local development
-npx wrangler dev
+```bash
+git clone https://github.com/YOUR_USERNAME/personallog-ai.git
+cd personallog-ai
+npm install
 ```
 
-The worker serves a responsive HTML dashboard at the root URL. All data persists in the browser's localStorage and IndexedDB.
+### 2. Add Secrets
 
-## API
+```bash
+npx wrangler secret put DEEPSEEK_API_KEY
+npx wrangler secret put JWT_SECRET
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Full dashboard with timeline, search, features |
+### 3. Deploy
 
-*Client-side APIs: localStorage for entries, IndexedDB for embeddings, Web Speech API for voice input.*
+```bash
+npm run deploy
+```
 
-## Architecture Notes
+Your agent is live at `https://personallog-ai.YOUR_WORKERS_SUBDOMAIN.workers.dev`
 
-PersonalLog embodies η (eta) in the γ + η = C framework — it eliminates the *forgetting* that reduces personal competence C. By capturing everything and forgetting nothing, it removes the information-loss tax on daily life. The auto-tagging and search provide γ (constructive retrieval) — building answers from raw captured data. The privacy-first design ensures that η operates correctly: nothing leaks, nothing is exfiltrated. See [ARCHITECTURE.md](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md).
+---
 
-## References
+## Channel Setup
 
-1. Bush, V. (1945). "As We May Think." *The Atlantic*. — The original vision of personal memory augmentation (Memex).
-2. Gemmell, J., et al. (2002). "MyLifeBits: Fulfilling the Memex Vision." *ACM Multimedia*. — Life-logging implementation.
-3. Ebbinghaus, H. (1885). *Über das Gedächtnis*. — The forgetting curve that PersonalLog aims to flatten.
+### Telegram
+
+1. Message [@BotFather](https://t.me/BotFather) to create a bot
+2. Get your bot token and set it as a secret:
+   ```bash
+   npx wrangler secret put TELEGRAM_BOT_TOKEN
+   ```
+3. Set your webhook:
+   ```bash
+   curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://YOUR_DOMAIN/api/webhook/telegram"
+   ```
+
+### Discord
+
+1. Create a bot at the [Discord Developer Portal](https://discord.com/developers/applications)
+2. Enable the Message Content Intent
+3. Set the webhook URL in your bot's settings:
+   ```
+   https://YOUR_DOMAIN/api/webhook/discord
+   ```
+4. Set secrets:
+   ```bash
+   npx wrangler secret put DISCORD_BOT_TOKEN
+   npx wrangler secret put DISCORD_PUBLIC_KEY
+   ```
+
+### WhatsApp (Meta Business)
+
+1. Set up a [Meta Business app](https://business.facebook.com/)
+2. Configure WhatsApp Business settings
+3. Set secrets:
+   ```bash
+   npx wrangler secret put WHATSAPP_VERIFY_TOKEN
+   npx wrangler secret put WHATSAPP_ACCESS_TOKEN
+   ```
+4. Set webhook URL: `https://YOUR_DOMAIN/api/webhook/whatsapp`
+
+### Email (Cloudflare Email Workers)
+
+Add to your `wrangler.toml`:
+
+```toml
+[[send_email]]
+name = "INBOUND_EMAIL"
+```
+
+Send emails to `agent@YOUR_DOMAIN` and the agent will respond.
+
+---
+
+## Deployment Options
+
+### Cloudflare Workers (Recommended)
+
+```bash
+npm run deploy
+```
+
+### Docker
+
+```bash
+docker build -t personallog-ai .
+docker run -p 8787:8787 \
+  -e DEEPSEEK_API_KEY=your_key \
+  -e JWT_SECRET=your_secret \
+  personallog-ai
+```
+
+### Local Development
+
+```bash
+npm run dev
+# Opens at http://localhost:8787
+```
+
+---
+
+## API Reference
+
+### Chat
+
+```
+POST /api/chat
+Authorization: Bearer <token>  (optional — guest mode without token)
+Content-Type: application/json
+
+{
+  "message": "Hello, who are you?",
+  "stream": true
+}
+```
+
+Response: SSE stream of JSON chunks, or a single JSON response.
+
+### Status
+
+```
+GET /api/status
+```
+
+```json
+{
+  "name": "PersonalAgent",
+  "avatar": "✨",
+  "files": 42,
+  "memories": 10,
+  "uptime": 3600,
+  "channels": ["web", "telegram"]
+}
+```
+
+### Files
+
+```
+GET /api/files          → List all repo files
+GET /api/files/:path    → Read file content
+```
+
+### Memory
+
+```
+GET /api/memory         → List stored memories
+DELETE /api/memory/:id  → Forget a memory
+```
+
+### Webhooks
+
+```
+POST /api/webhook/telegram
+POST /api/webhook/discord
+POST /api/webhook/whatsapp
+```
+
+### Agent-to-Agent
+
+```
+POST /api/a2a/discover   → Introduce your agent
+POST /api/a2a/message    → Send a message to this agent
+GET  /api/a2a/peers      → List known peer agents
+```
+
+### Analytics
+
+```
+GET /api/analytics
+```
+
+```json
+{
+  "totalMessages": 1234,
+  "totalUsers": 5,
+  "channels": { "web": 800, "telegram": 300, "discord": 134 },
+  "avgResponseMs": 850
+}
+```
+
+---
+
+## A2A Protocol
+
+Agents can talk to each other using a shared protocol:
+
+1. **Discovery** — `POST /api/a2a/discover` with your agent's info
+2. **Handshake** — Agents exchange capabilities and shared secret
+3. **Messaging** — Send messages via `POST /api/a2a/message`
+
+```typescript
+// Discover another agent
+await fetch('https://other-agent.workers.dev/api/a2a/discover', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'MyAgent',
+    url: 'https://my-agent.workers.dev',
+    capabilities: ['chat', 'memory', 'files']
+  })
+});
+```
+
+---
+
+## Configuration
+
+### cocapn/cocapn.json
+
+```json
+{
+  "name": "PersonalAgent",
+  "provider": "deepseek",
+  "model": "deepseek-chat",
+  "maxMemories": 1000,
+  "guestLimit": 5,
+  "channels": {
+    "telegram": true,
+    "discord": true,
+    "whatsapp": false,
+    "email": false
+  }
+}
+```
+
+### cocapn/soul.md
+
+Edit this file to change your agent's personality:
+
+```markdown
+---
+name: PersonalAgent
+tone: warm, helpful, thoughtful
+avatar: ✨
+---
+
+# I Am Your Personal Agent
+
+I live in your repo. I remember everything.
+```
+
+---
+
+## Architecture
+
+personallog.ai is a [cocapn](https://github.com/nichochar/cocapn) vertical — a powered repo built on the cocapn seed engine.
+
+```
+Cloudflare Worker (src/worker.ts)
+  ├── Routes (HTTP → handlers)
+  ├── Agent Core (src/agent/)
+  │   ├── soul.ts       → Personality from soul.md
+  │   ├── memory.ts     → KV-backed persistence
+  │   ├── context.ts    → Smart context building
+  │   ├── intelligence.ts → Code understanding
+  │   └── a2a.ts        → Agent-to-agent protocol
+  ├── Channels (src/channels/)
+  │   ├── telegram.ts   → Telegram Bot API
+  │   ├── discord.ts    → Discord webhooks
+  │   ├── whatsapp.ts   → Meta Graph API
+  │   └── normalize.ts  → Message normalization
+  └── Static (public/)
+      ├── index.html    → Landing page
+      ├── app.html      → Messenger-style web app
+      └── css/, js/     → Styles and logic
+```
+
+---
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit: `git commit -m 'feat: my feature'`
+4. Push: `git push origin feature/my-feature`
+5. Open a Pull Request
+
+All commits by agentic workers use `Author: Superinstance`.
+
+---
 
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE)
